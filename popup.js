@@ -228,6 +228,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function addCurrentSite() {
+    try {
+        // Rest of your code...
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          // Your existing implementation...
+        });
+      } catch (e) {
+        console.error('Error in addCurrentSite:', e);
+        // Show error to user
+        alert('Could not add the current site. Please try again.');
+      }
+      
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (chrome.runtime.lastError) {
         console.error('Error querying tabs:', chrome.runtime.lastError);
@@ -293,11 +304,14 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function notifySitesUpdated() {
-    chrome.runtime.sendMessage({ action: 'sitesUpdated' }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error notifying background script:', chrome.runtime.lastError);
-      }
-    });
+    try {
+      chrome.runtime.sendMessage({ action: 'sitesUpdated' }, (response) => {
+        // Don't check lastError here, just log success
+        console.log('Sites updated notification sent');
+      });
+    } catch (error) {
+      console.error('Failed to notify background script:', error);
+    }
   }
   
   // Event listeners

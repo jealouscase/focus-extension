@@ -1,8 +1,231 @@
+// Debug logging
+console.log('Focus Helper content script loading at', new Date().toISOString());
+chrome.runtime.sendMessage({ action: 'contentScriptReady' }, (response) => {
+  console.log('Content script ready notification sent:', response);
+});
+
+// Add this to ensure the helper works even with manifest loading
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM Content Loaded at', new Date().toISOString());
+  // Check if we need to show the helper on page load
+  chrome.storage.sync.get(['distractionSites'], (result) => {
+    const domain = extractDomain(window.location.href);
+    const isDistraction = result.distractionSites && result.distractionSites.some(site => 
+      domain === site.url || domain.endsWith('.' + site.url) || domain.includes(site.url)
+    );
+    
+    if (isDistraction) {
+      console.log('This is a distraction site, showing helper...');
+      injectFocusHelper();
+    }
+  });
+});
+
+
 // Create container for our Focus Helper component
 let focusHelperContainer = null;
 let focusHelperVisible = false;
 let scriptInjected = false;
 let styleElement = null;
+
+// Function to inject a simple test element
+function injectTestElement() {
+  console.log('Injecting test element');
+  
+  const testDiv = document.createElement('div');
+  testDiv.id = 'focus-helper-test';
+  testDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    height: 100px;
+    background-color: red;
+    color: white;
+    z-index: 2147483647;
+    padding: 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  `;
+  
+  testDiv.innerHTML = '<strong>Focus Helper Test</strong><p>If you can see this, DOM injection works!</p>';
+  document.body.appendChild(testDiv);
+  
+  console.log('Test element injected:', testDiv);
+  
+  // Add a button to manually trigger the actual Focus Helper
+  const button = document.createElement('button');
+  button.textContent = 'Show Focus Helper';
+  button.style.cssText = `
+    margin-top: 10px;
+    padding: 5px 10px;
+    background-color: white;
+    color: black;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  `;
+  button.onclick = function() {
+    injectFocusHelper();
+  };
+  
+  testDiv.appendChild(button);
+}
+
+// Function to add current site to distractions for testing
+function addCurrentSiteToDistractions() {
+  const domain = extractDomain(window.location.href);
+  console.log('Adding current domain to distractions for testing:', domain);
+  
+  chrome.storage.sync.get(['distractionSites'], (result) => {
+    const currentSites = result.distractionSites || [];
+    
+    // Check if already exists
+    if (!currentSites.some(site => site.url === domain)) {
+      const newSites = [...currentSites, { id: Date.now(), url: domain }];
+      
+      chrome.storage.sync.set({ distractionSites: newSites }, () => {
+        console.log('Updated distraction sites:', newSites);
+        console.log('Triggering injectFocusHelper');
+        injectFocusHelper();
+      });
+    } else {
+      console.log('Site already in distractions list');
+      injectFocusHelper();
+    }
+  });
+}
+
+// Function to inject and show the focus helper
+function injectFocusHelper() {
+  console.log('Attempting to inject Focus Helper popup at', new Date().toISOString());
+  console.log('Current URL:', window.location.href);
+  
+  // If already visible, no need to inject again
+  if (focusHelperVisible) {
+    console.log('Focus Helper already visible');
+    return;
+  }
+  
+  // Create container if it doesn't exist
+  if (!focusHelperContainer) {
+    console.log('Creating focus helper container');
+    focusHelperContainer = document.createElement('div');
+    focusHelperContainer.id = 'focus-helper-root';
+    document.body.appendChild(focusHelperContainer);
+    console.log('Container added to DOM:', focusHelperContainer);
+  }
+  
+  const focusHelperHTML = `
+    <div id="focus-helper" class="focus-helper">
+      <div class="drag-handle" id="drag-handle">
+        <div class="drag-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+      <div class="focus-helper-main active">
+        <div class="focus-header">
+          <h2>Focus Helper</h2>
+          <button class="settings-toggle-btn" id="settings-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="objective-input">
+          <div class="objective-label">
+            <div class="pulse-dot"></div>
+            <label>Current objective</label>
+          </div>
+          <input type="text" id="objective-input" placeholder="What are you working on?">
+        </div>
+        
+        <div class="timer-section">
+          <div class="timer-mode-tabs">
+            <button class="mode-tab active" id="stopwatch-tab">Stopwatch</button>
+            <button class="mode-tab" id="timer-tab">Timer</button>
+          </div>
+          
+          <div class="timer-input">
+            <input type="text" id="timer-time-input" placeholder="25:00">
+          </div>
+          
+          <div class="timer-display" id="timer-display">00:00</div>
+          
+          <div class="timer-controls">
+            <button class="timer-control-btn" id="timer-control">Start</button>
+            <div class="auto-start-container">
+              <label for="auto-start-toggle" class="auto-start-label">Auto-start</label>
+              <label class="switch small">
+                <input type="checkbox" id="auto-start-toggle">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="theme-toggle">
+          <span>Theme</span>
+          <label class="switch">
+            <input type="checkbox" id="theme-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="focus-helper-settings">
+        <div class="focus-header">
+          <h2>Manage Distraction Sites</h2>
+          <button class="settings-toggle-btn" id="back-to-main">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="site-input-wrap">
+          <input type="text" id="site-url-input" placeholder="Enter website URL">
+          <button id="add-site-btn">Add</button>
+        </div>
+        
+        <button class="add-current-btn" id="add-current-site-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+          </svg>
+          Add Current Site
+        </button>
+        
+        <div class="sites-list" id="sites-list"></div>
+      </div>
+    </div>
+  `;
+  
+  focusHelperContainer.innerHTML = focusHelperHTML;
+  console.log('Focus Helper HTML injected');
+  
+  // Ensure styles are applied
+  ensureStyles();
+  console.log('Focus Helper styles applied');
+  
+  // Make the helper visible
+  focusHelperContainer.style.display = 'block';
+  focusHelperVisible = true;
+  console.log('Focus Helper should now be visible');
+  
+  // Load saved data and set up event listeners
+  loadSavedData();
+  setupEventListeners();
+  
+  console.log('Focus Helper injection complete');
+}
 
 // Ensure styles are applied properly
 function ensureStyles() {
@@ -19,95 +242,6 @@ function ensureStyles() {
 // Get the styles text
 function getStylesText() {
   return `
-  <div id="focus-helper" class="focus-helper">
-    <div class="drag-handle" id="drag-handle">
-      <div class="drag-dots">
-        <span></span><span></span><span></span>
-      </div>
-    </div>
-    <div class="focus-helper-main active">
-      <div class="focus-header">
-        <h2>Focus Helper</h2>
-        <button class="settings-toggle-btn" id="settings-toggle">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" />
-          </svg>
-        </button>
-      </div>
-      
-      <div class="objective-input">
-        <div class="objective-label">
-          <div class="pulse-dot"></div>
-          <label>Current objective</label>
-        </div>
-        <input type="text" id="objective-input" placeholder="What are you working on?">
-      </div>
-      
-      <div class="timer-section">
-        <div class="timer-mode-tabs">
-          <button class="mode-tab active" id="stopwatch-tab">Stopwatch</button>
-          <button class="mode-tab" id="timer-tab">Timer</button>
-        </div>
-        
-        <div class="timer-input">
-          <input type="text" id="timer-time-input" placeholder="25:00">
-        </div>
-        
-        <div class="timer-display" id="timer-display">00:00</div>
-        
-        <div class="timer-controls">
-          <button class="timer-control-btn" id="timer-control">Start</button>
-          <div class="auto-start-container">
-            <label for="auto-start-toggle" class="auto-start-label">Auto-start</label>
-            <label class="switch small">
-              <input type="checkbox" id="auto-start-toggle">
-              <span class="slider round"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-      
-      <div class="theme-toggle">
-        <span>Theme</span>
-        <label class="switch">
-          <input type="checkbox" id="theme-toggle">
-          <span class="slider round"></span>
-        </label>
-      </div>
-    </div>
-    
-    <div class="focus-helper-settings">
-      <div class="focus-header">
-        <h2>Manage Distraction Sites</h2>
-        <button class="settings-toggle-btn" id="back-to-main">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-          </svg>
-        </button>
-      </div>
-      
-      <div class="site-input-wrap">
-        <input type="text" id="site-url-input" placeholder="Enter website URL">
-        <button id="add-site-btn">Add</button>
-      </div>
-      
-      <button class="add-current-btn" id="add-current-site-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
-        </svg>
-        Add Current Site
-      </button>
-      
-      <div class="sites-list" id="sites-list"></div>
-    </div>
-  </div>
-  `;
-  
-  focusHelperContainer.innerHTML = focusHelperHTML;
-  
-  // Add CSS by injecting a style tag with very specific selectors
-  const styleTag = document.createElement('style');
-  styleTag.textContent = `
     /* Ensure all our styles are isolated and highly specific */
     #focus-helper-root,
     #focus-helper-root *,
@@ -571,18 +705,6 @@ function getStylesText() {
       background-color: rgba(239, 68, 68, 0.1);
     }
   `;
-  document.head.appendChild(styleTag);
-  
-  // Load saved data
-  loadSavedData();
-  
-  // Setup event listeners
-  setupEventListeners();
-  
-  // Set up a MutationObserver to ensure our styles stay applied
-  setupStyleObserver();
-  
-  console.log('Focus Helper injected successfully');
 }
 
 // Function to hide the focus helper
@@ -953,11 +1075,14 @@ function deleteSite(id) {
 }
 
 function notifySitesUpdated() {
-  chrome.runtime.sendMessage({ action: 'sitesUpdated' }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error('Error notifying background script:', chrome.runtime.lastError);
-    }
-  });
+  try {
+    chrome.runtime.sendMessage({ action: 'sitesUpdated' }, (response) => {
+      // Don't check lastError directly as it sometimes causes errors itself
+      console.log('Sites updated notification sent');
+    });
+  } catch (error) {
+    console.error('Failed to notify background script:', error);
+  }
 }
 
 // Extract domain from URL
@@ -986,6 +1111,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'hideFocusHelper') {
     hideFocusHelper();
     sendResponse({ status: 'hidden' });
+  } else if (request.action === 'checkIfContentScriptExists') {
+    sendResponse({ exists: true });
   } else if (request.action === 'checkStyles') {
     ensureStyles();
     sendResponse({ status: 'styles-checked' });
@@ -994,24 +1121,54 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true; // Keep the message channel open for asynchronous response
 });
 
+// Expose functions for manual testing via browser console
+window.showFocusHelper = function() {
+  console.log('Manual trigger for Focus Helper');
+  injectFocusHelper();
+};
+
+window.testElement = function() {
+  console.log('Manual trigger for test element');
+  injectTestElement();
+};
+
+window.addCurrentSiteToDistractions = addCurrentSiteToDistractions;
+
 // Make sure styles are applied when the page loads
 window.addEventListener('load', () => {
+  console.log('Window load event fired');
   ensureStyles();
   
+  // Add a test element on page load for debugging
+  injectTestElement();
+  
   // Check if we should show the helper based on the current URL
-  chrome.storage.sync.get(['distractionSites'], ({ distractionSites = [] }) => {
+  chrome.storage.sync.get(['distractionSites'], (result) => {
+    console.log('Current distraction sites:', result.distractionSites || []);
+    
     const domain = extractDomain(window.location.href);
-    const isDistraction = distractionSites.some(site => 
+    console.log('Current domain:', domain);
+    
+    const isDistraction = result.distractionSites && result.distractionSites.some(site => 
       domain === site.url || domain.endsWith('.' + site.url) || domain.includes(site.url)
     );
     
+    console.log('Is current site a distraction?', isDistraction);
+    
     if (isDistraction) {
+      console.log('Calling injectFocusHelper because site is in distraction list');
       injectFocusHelper();
     }
   });
+  
+  // Let the background script know the content script is ready
+  chrome.runtime.sendMessage({ action: 'contentScriptReady' });
 });
 
 // Also check styles when DOM content is loaded (earlier than window.load)
-document.addEventListener('DOMContentLoaded', ensureStyles);
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM Content Loaded - Adding test element and checking styles');
+  ensureStyles();
+});
 
-console.log('Focus Helper content script loaded');
+console.log('Focus Helper content script loaded completely');
