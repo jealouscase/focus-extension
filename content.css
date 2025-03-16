@@ -1,123 +1,123 @@
 /* Styles for the focus helper container */
 #focus-helper-root {
-    position: fixed !important;
-    top: 16px !important;
-    right: 16px !important;
-    z-index: 2147483647 !important; /* Highest z-index to ensure it's on top */
-    width: 360px !important;
-    box-sizing: border-box !important;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
-    user-select: none !important;
+  position: fixed !important;
+  top: 16px !important;
+  right: 16px !important;
+  z-index: 2147483647 !important; /* Highest z-index to ensure it's on top */
+  width: 360px !important;
+  box-sizing: border-box !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  user-select: none !important;
+}
+
+/* Reset styles for all elements within our component */
+#focus-helper-root * {
+  all: initial;
+  box-sizing: border-box !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+}
+
+/* Specific reset for elements */
+#focus-helper-root div,
+#focus-helper-root span,
+#focus-helper-root h1,
+#focus-helper-root h2,
+#focus-helper-root h3,
+#focus-helper-root p,
+#focus-helper-root button,
+#focus-helper-root input,
+#focus-helper-root label {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+}
+
+/* Button reset */
+#focus-helper-root button {
+  background-color: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+}
+
+/* Input reset */
+#focus-helper-root input {
+  border: 1px solid #d1d5db !important;
+  padding: 8px !important;
+  font-size: inherit !important;
+  color: inherit !important;
+  background-color: inherit !important;
+}
+
+/* Container for the helper */
+#focus-helper-root .focus-helper {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* Dark theme */
+#focus-helper-root .focus-helper.dark {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+/* Animation for the glowing dot */
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.95);
   }
-  
-  /* Reset styles for all elements within our component */
-  #focus-helper-root * {
-    all: initial;
-    box-sizing: border-box !important;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
   }
-  
-  /* Specific reset for elements */
-  #focus-helper-root div,
-  #focus-helper-root span,
-  #focus-helper-root h1,
-  #focus-helper-root h2,
-  #focus-helper-root h3,
-  #focus-helper-root p,
-  #focus-helper-root button,
-  #focus-helper-root input,
-  #focus-helper-root label {
-    display: block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: normal !important;
+  100% {
+    opacity: 0.5;
+    transform: scale(0.95);
   }
-  
-  /* Button reset */
-  #focus-helper-root button {
-    background-color: transparent !important;
-    border: none !important;
-    cursor: pointer !important;
-    padding: 0 !important;
-    font-size: inherit !important;
-  }
-  
-  /* Input reset */
-  #focus-helper-root input {
-    border: 1px solid #d1d5db !important;
-    padding: 8px !important;
-    font-size: inherit !important;
-    color: inherit !important;
-    background-color: inherit !important;
-  }
-  
-  /* Container for the helper */
-  #focus-helper-root .focus-helper {
-    background-color: #ffffff !important;
-    color: #111827 !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-    overflow: hidden !important;
-    position: relative !important;
-  }
-  
-  /* Dark theme */
-  #focus-helper-root .focus-helper.dark {
-    background-color: #1f2937 !important;
-    color: #f9fafb !important;
-  }
-  
-  /* Animation for the glowing dot */
-  @keyframes pulse {
-    0% {
-      opacity: 0.5;
-      transform: scale(0.95);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.05);
-    }
-    100% {
-      opacity: 0.5;
-      transform: scale(0.95);
-    }
-  }
-  
-  /* Animation for timer blinking */
-  @keyframes blink {
-    0% { color: inherit; }
-    50% { color: #4b5563; }
-    100% { color: inherit; }
-  }
-  
-  /* Animation for drag handle */
-  #focus-helper-root .drag-handle {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    height: 12px !important;
-    cursor: move !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    z-index: 10 !important;
-    opacity: 0 !important;
-    transition: opacity 0.2s !important;
-  }
-  
-  #focus-helper-root:hover .drag-handle {
-    opacity: 1 !important;
-  }
-  
-  /* Make sure pulse animation works */
-  .pulse-dot, #focus-helper-root .pulse-dot {
-    animation: pulse 2s infinite !important;
-  }
-  
-  /* Make sure blink animation works */
-  .timer-display.blink, #focus-helper-root .timer-display.blink {
-    animation: blink 1s infinite !important;
-  }
+}
+
+/* Animation for timer blinking */
+@keyframes blink {
+  0% { color: inherit; }
+  50% { color: #4b5563; }
+  100% { color: inherit; }
+}
+
+/* Animation for drag handle */
+#focus-helper-root .drag-handle {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 12px !important;
+  cursor: move !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 10 !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s !important;
+}
+
+#focus-helper-root:hover .drag-handle {
+  opacity: 1 !important;
+}
+
+/* Make sure pulse animation works */
+.pulse-dot, #focus-helper-root .pulse-dot {
+  animation: pulse 2s infinite !important;
+}
+
+/* Make sure blink animation works */
+.timer-display.blink, #focus-helper-root .timer-display.blink {
+  animation: blink 1s infinite !important;
+}

@@ -989,9 +989,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'checkStyles') {
     ensureStyles();
     sendResponse({ status: 'styles-checked' });
-  } else if (request.action === 'checkIfContentScriptExists') {
-    // This is just to let the background script know the content script is loaded
-    sendResponse({ exists: true });
   }
   
   return true; // Keep the message channel open for asynchronous response

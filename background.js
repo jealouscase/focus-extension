@@ -14,6 +14,9 @@ chrome.runtime.onInstalled.addListener(() => {
     });
   });
   
+  // Active tabs that have been initialized with the content script
+  const initializedTabs = new Set();
+  
   // Extract domain from URL
   function extractDomain(url) {
     try {
@@ -38,6 +41,63 @@ chrome.runtime.onInstalled.addListener(() => {
       return currentDomain === siteDomain || 
              currentDomain.endsWith('.' + siteDomain) || 
              currentDomain.includes(siteDomain);
+    });
+  }
+  
+  // Safely send a message to a tab with retry logic
+  function safelySendMessage(tabId, message, callback, retries = 3, delay = 1000) {
+    try {
+      chrome.tabs.sendMessage(tabId, message, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log(`Error sending message to tab ${tabId}: ${chrome.runtime.lastError.message}`);
+          
+          // If we have retries left and the tab still exists, try again after a delay
+          if (retries > 0) {
+            console.log(`Retrying message to tab ${tabId} (${retries} retries left)`);
+            setTimeout(() => {
+              safelySendMessage(tabId, message, callback, retries - 1, delay);
+            }, delay);
+          } else if (callback) {
+            callback({ error: chrome.runtime.lastError.message });
+          }
+        } else if (callback) {
+          callback(response);
+        }
+      });
+    } catch (e) {
+      console.error('Error in safelySendMessage:', e);
+      if (callback) callback({ error: e.message });
+    }
+  }
+  
+  // Manually inject the content script into a tab
+  function injectContentScript(tabId, callback) {
+    console.log(`Injecting content script into tab ${tabId}`);
+    
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['content.js']
+    }, (results) => {
+      if (chrome.runtime.lastError) {
+        console.error(`Error injecting content script: ${chrome.runtime.lastError.message}`);
+        if (callback) callback(false);
+      } else {
+        console.log(`Content script injected into tab ${tabId}`);
+        initializedTabs.add(tabId);
+        
+        // Also inject CSS
+        chrome.scripting.insertCSS({
+          target: { tabId: tabId },
+          files: ['content.css']
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.error(`Error injecting CSS: ${chrome.runtime.lastError.message}`);
+          } else {
+            console.log(`CSS injected into tab ${tabId}`);
+          }
+          if (callback) callback(true);
+        });
+      }
     });
   }
   
@@ -106,9 +166,19 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   });
   
+  // When a tab is closed, remove it from our initialized tabs list
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    initializedTabs.delete(tabId);
+  });
+  
   // Listen for messages from content scripts or popup
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Received message:', request);
+    
+    // If message came from a content script, mark the tab as initialized
+    if (sender.tab && sender.tab.id) {
+      initializedTabs.add(sender.tab.id);
+    }
     
     // Handle adding the current site
     if (request.action === 'addCurrentSite') {
@@ -166,6 +236,27 @@ chrome.runtime.onInstalled.addListener(() => {
         });
       });
       sendResponse({ success: true });
+      return true;
+    }
+    
+    // Handle content script ready notification
+    if (request.action === 'contentScriptReady') {
+      if (sender.tab && sender.tab.id) {
+        initializedTabs.add(sender.tab.id);
+        console.log(`Tab ${sender.tab.id} marked as initialized`);
+        
+        // Check if this tab should show the focus helper
+        if (sender.tab.url) {
+          chrome.storage.sync.get(['distractionSites'], ({ distractionSites = [] }) => {
+            const shouldShow = isDistractionSite(sender.tab.url, distractionSites);
+            if (shouldShow) {
+              console.log(`Showing helper for ready tab ${sender.tab.id}`);
+              sendVisibilityMessage(sender.tab.id, true);
+            }
+          });
+        }
+      }
+      sendResponse({ status: 'acknowledged' });
       return true;
     }
     
