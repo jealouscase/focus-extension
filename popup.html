@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Focus Helper</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      width: 360px;
+      background-color: #ffffff;
+      color: #111827;
+    }
+    
+    body.dark {
+      background-color: #1f2937;
+      color: #f9fafb;
+    }
+    
+    .container {
+      padding: 20px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .view-toggle {
+      display: flex;
+    }
+    
+    .main-view, .settings-view {
+      display: none;
+    }
+    
+    .main-view.active, .settings-view.active {
+      display: block;
+    }
+    
+    .objective-input {
+      margin-bottom: 20px;
+    }
+    
+    .objective-label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background-color: #ef4444;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.5; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 0.5; transform: scale(0.95); }
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+      background-color: #f9fafb;
+      color: #111827;
+      box-sizing: border-box;
+    }
+    
+    body.dark input[type="text"] {
+      background-color: #374151;
+      border-color: #4b5563;
+      color: #f9fafb;
+    }
+    
+    .timer-section {
+      margin-bottom: 20px;
+    }
+    
+    .timer-mode-tabs {
+      display: flex;
+      margin-bottom: 12px;
+    }
+    
+    .mode-tab {
+      padding: 8px 16px;
+      background-color: #f3f4f6;
+      border: none;
+      border-radius: 6px;
+      margin-right: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .mode-tab.active {
+      background-color: #3b82f6;
+      color: white;
+    }
+    
+    body.dark .mode-tab {
+      background-color: #374151;
+      color: #e5e7eb;
+    }
+    
+    body.dark .mode-tab.active {
+      background-color: #2563eb;
+    }
+    
+    .timer-input {
+      margin-bottom: 12px;
+      display: none;
+    }
+    
+    .timer-display {
+      font-size: 36px;
+      font-weight: 700;
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .timer-display.blink {
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0% { color: inherit; }
+      50% { color: #4b5563; }
+      100% { color: inherit; }
+    }
+    
+    .timer-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    
+    .timer-control-btn {
+      flex-grow: 1;
+      margin-right: 12px;
+      padding: 12px;
+      background-color: #10b981;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .timer-control-btn:hover {
+      background-color: #059669;
+    }
+    
+    body.dark .timer-control-btn {
+      background-color: #059669;
+    }
+    
+    body.dark .timer-control-btn:hover {
+      background-color: #047857;
+    }
+    
+    .auto-start-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .auto-start-label {
+      font-size: 12px;
+      margin-bottom: 4px;
+      color: inherit;
+    }
+    
+    .switch.small {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+    
+    .switch.small .slider:before {
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+    }
+    
+    .switch.small input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    
+    .button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 6px;
+      border: none;
+      background-color: #3b82f6;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    
+    .button:hover {
+      background-color: #2563eb;
+    }
+    
+    body.dark .button {
+      background-color: #2563eb;
+    }
+    
+    body.dark .button:hover {
+      background-color: #1d4ed8;
+    }
+    
+    .secondary-button {
+      background-color: #f3f4f6;
+      border: 1px solid #d1d5db;
+      color: #1f2937;
+    }
+    
+    .secondary-button:hover {
+      background-color: #e5e7eb;
+    }
+    
+    body.dark .secondary-button {
+      background-color: #374151;
+      border-color: #4b5563;
+      color: #e5e7eb;
+    }
+    
+    body.dark .secondary-button:hover {
+      background-color: #4b5563;
+    }
+    
+    .icon-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .icon-button svg {
+      margin-right: 8px;
+    }
+    
+    .theme-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+    
+    body.dark .theme-toggle {
+      border-color: #4b5563;
+    }
+    
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 24px;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+    }
+    
+    input:checked + .slider {
+      background-color: #3b82f6;
+    }
+    
+    body.dark input:checked + .slider {
+      background-color: #2563eb;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+    
+    .slider.round {
+      border-radius: 24px;
+    }
+    
+    .slider.round:before {
+      border-radius: 50%;
+    }
+    
+    .site-input-wrap {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    
+    .site-input-wrap input {
+      padding-right: 60px;
+    }
+    
+    .site-input-wrap button {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      border: none;
+      background-color: #3b82f6;
+      color: white;
+      padding: 0 16px;
+      border-radius: 0 6px 6px 0;
+      cursor: pointer;
+    }
+    
+    body.dark .site-input-wrap button {
+      background-color: #2563eb;
+    }
+    
+    .site-input-wrap button:hover {
+      background-color: #2563eb;
+    }
+    
+    body.dark .site-input-wrap button:hover {
+      background-color: #1d4ed8;
+    }
+    
+    .sites-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 16px;
+    }
+    
+    .site-item {
+      padding: 12px;
+      background-color: #f3f4f6;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    body.dark .site-item {
+      background-color: #374151;
+    }
+    
+    .delete-site-btn {
+      background-color: transparent;
+      border: none;
+      color: #ef4444;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 50%;
+    }
+    
+    .delete-site-btn:hover {
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+    
+    .nav-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #3b82f6;
+      padding: 0;
+      font-size: 14px;
+    }
+    
+    body.dark .nav-button {
+      color: #60a5fa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Focus Helper</h1>
+      <div class="view-toggle">
+        <button id="switch-view" class="nav-button">
+          <span id="main-view-text">Manage Sites</span>
+          <span id="settings-view-text" style="display: none;">Back</span>
+        </button>
+      </div>
+    </div>
+    
+    <div id="main-view" class="main-view active">
+      <div class="objective-input">
+        <div class="objective-label">
+          <div class="pulse-dot"></div>
+          <label>Current objective</label>
+        </div>
+        <input type="text" id="objective-input" placeholder="What are you working on?">
+      </div>
+      
+      <div class="timer-section">
+        <div class="timer-mode-tabs">
+          <button class="mode-tab active" id="stopwatch-tab">Stopwatch</button>
+          <button class="mode-tab" id="timer-tab">Timer</button>
+        </div>
+        
+        <div class="timer-input" id="timer-input">
+          <input type="text" id="timer-time-input" placeholder="25:00">
+        </div>
+        
+        <div class="timer-display" id="timer-display">00:00</div>
+        
+        <div class="timer-controls">
+          <button class="timer-control-btn" id="timer-control">Start</button>
+          <div class="auto-start-container">
+            <label for="auto-start-toggle" class="auto-start-label">Auto-start</label>
+            <label class="switch small">
+              <input type="checkbox" id="auto-start-toggle">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <button id="add-current-site-btn" class="button secondary-button icon-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+        </svg>
+        Add Current Site as Distraction
+      </button>
+      
+      <div class="theme-toggle">
+        <span>Dark theme</span>
+        <label class="switch">
+          <input type="checkbox" id="theme-toggle">
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div id="settings-view" class="settings-view">
+      <h2>Manage Distraction Sites</h2>
+      <p>Add websites that distract you from your work. The Focus Helper will appear when you visit these sites.</p>
+      
+      <div class="site-input-wrap">
+        <input type="text" id="site-url-input" placeholder="Enter website URL (e.g. twitter.com)">
+        <button id="add-site-btn">Add</button>
+      </div>
+      
+      <button id="settings-add-current-btn" class="button secondary-button icon-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+        </svg>
+        Add Current Site
+      </button>
+      
+      <div id="sites-list" class="sites-list">
+        <!-- Sites will be added here dynamically -->
+        <p style="text-align: center; color: #6b7280;">No sites added yet</p>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
